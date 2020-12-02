@@ -4,11 +4,11 @@ The aim of the script below is to run genetic analyses (a mini GWAS) to identify
 
 ## Data (Restricted by IRB)
 
-The data is confidential and cannot be shared due to IRB restrictions and thus not allowed to be posted on GitHub. You won't be able to run the code but it might help to reference that the data is a subset of the Breast Cancer Association Consortium detailed here: http://bcac.ccge.medschl.cam.ac.uk/
+The data used in the analyses is confidential and cannot be shared due to IRB restrictions and thus not allowed to be posted on GitHub. You won't be able to run the code but it might help to reference that the data is a subset of the Breast Cancer Association Consortium detailed here: http://bcac.ccge.medschl.cam.ac.uk/
 
-There are R Markdown .html files provided, you will be able to see the structure and sample of the datasets, along with outputs of the code, which show that the code/script works and produces the output files listed.
+There are R Markdown .html files provided which allow you to see the structure and sample of the datasets, along with outputs of the code - the .html files eseentially walk you through the code/script to produces the outputs and results.
 
-Data files used in the analyses (Restricted by IRB):
+The following data files (restricted by IRB) were used and will be referenced in the analyses and scripts below:
 
 1) BCAC_582_imputed_dosages.txt,
 2) BCAC_582_pheno_yp.txt,
