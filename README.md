@@ -31,3 +31,5 @@ However, the R-Markdown .html files are what you will use to go through the code
 
 Likewise, the code that produced the .html file above can be found in the "R_Code" directory, please use the version titled "CS510_Project_Final.Rmd" for the review.
 
+Note: The above scripts, data, outputs and markdown files were created within the R project: "CS510_Project.Rproj"
+
