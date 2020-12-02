@@ -1,4 +1,4 @@
-###Study Aim
+#Study Aim
 
 The aim of the script below is to run genetic analyses (a mini GWAS) to identify genetic variants that are associated with breast cancer risk. Particularly we are looking at a sample of 3,135 genetic variants among ~100K European individuals from around the world who were enrolled in this study from various study cites. The output of the analyses will be a tab delimited .txt file with test statistics as well as Manhattan and Q-Q plots which will display our results to see if any markers are found to be significantly associated across the genome.
 
