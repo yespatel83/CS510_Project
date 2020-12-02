@@ -25,7 +25,9 @@ The following output files were created by the script and have been provided in 
 4) A truncated version of the results: BCAC_Overall_Status_Results_top_hits.txt
 
 ## How to run the code
-This code is NOT executable due to data IRB restrictions. The R-Markdown .html files include the code, data views, and outputs. The .html files are in the "R_Markdown" directory above, please use the version titled "CS510_Project_Final.html" for the review.
+As you know by now, this code is NOT executable due to data IRB restrictions. 
+
+However, the R-Markdown .html files are what you will use to go through the code, the data views, and the few outputs. The .html files are in the "R_Markdown" directory above, please use the version titled "CS510_Project_Final.html" for the review.
 
 Likewise, the code that produced the .html file above can be found in the "R_Code" directory, please use the version titled "CS510_Project_Final.Rmd" for the review.
 
