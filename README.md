@@ -17,14 +17,15 @@ Data files used in the analyses (Restricted by IRB):
 
 ## Output Files
 
+The following output files were created by the script and have been provided in the above "Outputs" directory:
+
 1) The script will output the complete results: BCAC_Overall_Status_Results.txt
 2) Manhattan Plot: MH_plot.tiff
 3) Quantile-Quantile Plot: QQ_plot.tiff
 4) A truncated version of the results: BCAC_Overall_Status_Results_top_hits.txt
 
 ## How to run the code
-This code is NOT executable due to data IRB restrictions. The R-Markdown .html files include the code, data views, and outputs. Please use the .html file for review purposes. The .html files are in the Markdown Files folder.
+This code is NOT executable due to data IRB restrictions. The R-Markdown .html files include the code, data views, and outputs. The .html files are in the "R_Markdown" directory above, please use the version titled "CS510_Project_Final.html" for the review.
 
-
-
+Likewise, the code that produced the .html file above can be found in the "R_Code" directory, please use the version titled "CS510_Project_Final.Rmd" for the review.
 
