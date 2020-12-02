@@ -9,19 +9,18 @@ The data is confidential and cannot be shared due to IRB restrictions and thus n
 There are R Markdown .html files provided, you will be able to see the structure and sample of the datasets, along with outputs of the code, which show that the code/script works and produces the output files listed.
 
 Data files used in the analyses (Restricted by IRB):
-BCAC_582_imputed_dosages.txt
-BCAC_582_pheno_yp.txt
-BCAC_582_sample_order.txt
-BCAC_582_imputed_variants_info.txt
+
+1) BCAC_582_imputed_dosages.txt,
+2) BCAC_582_pheno_yp.txt,
+3) BCAC_582_sample_order.txt,
+4) BCAC_582_imputed_variants_info.txt
 
 ## Output Files
 
-The script will output the complete results: BCAC_Overall_Status_Results.txt
-The two association plots:
-MH_plot.tiff
-QQ_plot.tiff
-
-It will also create a truncated version of the results: BCAC_Overall_Status_Results_top_hits.txt
+1) The script will output the complete results: BCAC_Overall_Status_Results.txt
+2) Manhattan Plot: MH_plot.tiff
+3) Quantile-Quantile Plot: QQ_plot.tiff
+4) A truncated version of the results: BCAC_Overall_Status_Results_top_hits.txt
 
 ## How to run the code
 This code is NOT executable because the data sets are restricted. Please read the .html files for the code and the ouputs. The .html files are in the Markdown Files folder.
