@@ -23,7 +23,7 @@ Data files used in the analyses (Restricted by IRB):
 4) A truncated version of the results: BCAC_Overall_Status_Results_top_hits.txt
 
 ## How to run the code
-This code is NOT executable because the data sets are restricted. Please read the .html files for the code and the ouputs. The .html files are in the Markdown Files folder.
+This code is NOT executable due to data IRB restrictions. The R-Markdown .html files include the code, data views, and outputs. Please use the .html file for review purposes. The .html files are in the Markdown Files folder.
 
 
 
