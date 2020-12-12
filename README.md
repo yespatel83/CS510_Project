@@ -6,7 +6,7 @@ The aim of the script below is to run genetic analyses (a mini GWAS) to identify
 
 The data used in the analyses is confidential and cannot be shared due to IRB restrictions and thus not allowed to be posted on GitHub. You won't be able to run the code but it might help to reference that the data is a subset of the Breast Cancer Association Consortium detailed here: http://bcac.ccge.medschl.cam.ac.uk/
 
-There are R Markdown .html files provided which allow you to see the structure and sample of the datasets, along with outputs of the code - the .html files eseentially walk you through the code/script to produces the outputs and results.
+There are R Markdown .html files provided which allow you to see the structure and sample of the datasets, along with outputs of the code - the .html files essentially walk you through the code/script to produce the outputs and results.
 
 The following data files (restricted by IRB) were used and will be referenced in the analyses and scripts below:
 
