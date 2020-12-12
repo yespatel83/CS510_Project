@@ -27,9 +27,9 @@ The following output files were created by the script and have been provided in 
 ## How to run the code
 As you know by now, this code is NOT executable due to data IRB restrictions. 
 
-However, the R-Markdown .html files are what you will use to go through the code, the data views, and the few outputs. The .html files are in the "R_Markdown" directory above, please use the version titled "CS510_Project_Final.html" for the review.
+However, the R-Markdown .html files are what you will use to go through the code, the data views, and the few outputs. The .html files are in the "R_Markdown" directory above, please use the version titled "CS510_Project_Final_Report_121020.html" for the Final Report.
 
-Likewise, the code that produced the .html file above can be found in the "R_Code" directory, please use the version titled "CS510_Project_Final.Rmd" for the review.
+Likewise, the code that produced the .html file above can be found in the "R_Code" directory, please use the version titled "CS510_Project_Final_Report_121020.Rmd" which is the script used to produce the Final report above.
 
 Note: The above scripts, data, outputs and markdown files were created within the R project: "CS510_Project.Rproj"
 
