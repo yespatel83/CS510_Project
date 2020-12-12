@@ -1,0 +1,264 @@
+---
+title: "Association of genetic variants to identify breast cancer risk"
+author: "Yesha Patel"
+output: 
+  html_document:
+    df_print: paged
+theme: cerulean
+
+---
+
+###Background
+
+Breast cancer is the most common cancer among women in the United States, accounting for 15% of all new cancer cases. An estimated 15% to 30% of breast cancer cases are heritable or due to underlying genetic transmission, but the genetic alterations accounting for these breast cancers are not fully defined [1]. In the past decades, genome-wide association studies (GWASs) have well identified genetic variants associated with many complex human traits and diseases. These studies aim to identify genetic influences on complex phenotypes and traits which are critical in ultimately improving disease diagnosis, prognosis and drug development.  When many loci influence a trait and the genetic nature of influence isn't dictated by one or handful of genes or variants then genome wide association studies recruiting large samples and populations are the appropriate design methodology. 
+
+For most common diseases and traits the genetic basis underlying susceptibility has yet to be completely revealed. While GWAS have been remarkably successful in identifying common genetic variants associated with risk, the effect sizes of the risk alleles have been modest and in most cases, they can explain only a fraction of familial risk or disease heritability. For breast and prostate cancer, GWAS have revealed many risk variants (172 risk-associated SNPs accounting for only 18% of familial relative risk [2]). All together the common variants in these regions explain only a minority of familial risk of these cancers. Thus, to date, a large fraction of genetic variation has yet to be explored with respect to disease etiology. If very rare and/or less penetrant coding variants underlie disease heritability of these cancers, then very large sample sizes (i.e. this consortia) will be required for their discovery. 
+
+Just like finding a needle in a haystack, the greatest challenge of handling big genomic data is to curate and identify clinically significant variants that could be implemented in clinical settings. The aim of the analyses below is to run genetic analyses (a mini GWAS analyzing a subset of 3,135 genetic variants) to identify genetic variants that are associated with breast cancer risk among a large sample set (~100K European individuals from around the world) who were enrolled in this study from various study cites. The output of the analyses will be a tab delimited .txt file with test statistics as well as Manhattan and Q-Q plots which will display our results to see if any markers are found to be significantly associated across the genome.
+
+###Methods
+
+Note: Although, the data is confidential and cannot be shared due to IRB restrictions, it might help to reference that it is a subset of the Breast Cancer Association Consortium detailed here: http://bcac.ccge.medschl.cam.ac.uk/
+
+####Study Population
+Data from forty-five BCAC case-control studies from Australia, Europe, North America, and South-East Asia were available for inclusion in this analysis (details of which have been previously published [3]). To be eligible for BCAC, studies needed to include at least 500 cases of invasive breast cancer and 500 controls, with DNA samples available for genotyping. The controls needed to be broadly from the same population as the cases. Some studies selected cases preferentially on the basis of age and/or family history. All studies provided information on disease status (53,772 controls/76,479 cases), age at diagnosis or interview and ethnicity (Asian/European/other).
+
+####Lab Methods & Genotyping
+In most studies SNPs were assayed by Taqman (Applied Biosystems, Foster City, USA) and reactions were performed according to manufacturer's instructions which have been explained in detail elsewhere [3]. SNPs were genotyped in three different BCAC genotyping phases along with other SNPs of interest to the consortium. Data were excluded for any sample that failed genotyping for >20% of the SNPs typed in a given phase of genotyping. All study data were excluded for any SNP with overall call rate <95% or duplicate concordance <94% or departure of genotype distribution from Hardy-Weinberg equilibrium in controls (p<0.005). Quality control data for the individual studies have been previously discussed [3].  Imputation was conducted on the genotype data to increase coverage, and improve power of loci detection [4]. Genotype data that passed the above quality control filters were phased with SHAPEIT [5] and imputed into 1000 Genomes phase 3 reference data using IMPUTE version 2.3.2. Segments of the genome that are known to contain gross chromosomal anomalies were filtered out of the final files of the genotype probabilities. Imputed sites were excluded if the IMPUTE information score was less than 0.4. For the current study a subset of 3,135 genetic variants of interest were selected from the larger imputed set for statistical analyses.
+
+####Statistical Analyses
+To estimate the association between each SNP and risk of breast cancer, the imputed allele dosage for each SNP was tested for association in unconditional logistic regressions for the effect of risk allele. Odds Ratios were estimated using logistic regression for the main effect of the SNP, adjusted for country of study and the first four principal components used to identify race/ethnicity.
+
+All analyses, were performed using R version 3.6.3 (2020-02-29) [6] and the R packages data.table, statmod, glm, tidyr, and qqman.
+
+
+```{r, warning=FALSE, echo=F, results='hide', message=FALSE, results=FALSE}
+#### Download the necessary packages
+list.of.packages <-c("ggplot2", "data.table", "statmod", "qqman", "tidyr")
+new.packages <-list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) {
+  install.packages(new.packages)
+  }
+
+# Open the packages
+library(ggplot2)
+library(data.table)
+library(statmod)
+library(tidyr)
+library(qqman)
+
+### Read the data
+
+#####The dosage file
+#This is where the genetic data is stored per person per genetic variant, currently the rows are the variants and the columns are the samples - we will have to transpose this later to run the statistical analyses. Also note, in this form (given to us by the investigator) none of the sample names have been included in the genetic data files. Dosage values range from 0 1o 1 starting column V3 below. V1=genetic variant ID and V2=genetic variant position.
+
+dose <-fread("Data/BCAC_582_imputed_dosages.txt", sep=" ", header=F, fill=TRUE)
+dose[1:5,1:9]
+
+#####Read in the phenotype & covariate file
+#"status_new" is the case/control status data, PC1-PC10 represent principal components (further explained below)
+
+covar <-read.table("Data/BCAC_582_pheno_yp.txt", header=TRUE, fill=T) 
+covar [1:5, 3:18] #Note: I've purposely omitted "printing" the ID colummns, col 1 & 2
+
+### Data Management
+#The sample IDs for the genetic/dosage data were provided separately in a .txt file - so we have to merge in this information before we can link the genetic data with any covariate information related to each of the samples. 
+
+names <-fread("Data/BCAC_582_sample_order.txt", header=F)
+names(dose)<-c("snp","bp","a1","a2",names$V1)
+
+#The first three columns of the dosage files provide information about the variants (their chromosomal location, and the two alleles realted to the variant), we don't need this at this point, so we will drop the first three columns. Further, removing this informaton below will allow us to smoothly transpose the data next
+
+dose2 <-subset(dose, select= -c(bp, a1, a2))
+name2 <-dose2$snp
+
+#In order to analyze the data, we have to convert the rows (variants) into columns, and columns (samples) into rows - this will allows us to analyze each variant one at a time for all samples. To do so, transpose all but the first column (name)
+
+trans <-as.data.frame(t(dose2[,-1]))
+colnames(trans) <-name2
+
+setDT(trans, keep.rownames=TRUE)[]  
+colnames(trans)[1] <-"BCAC_ID"   # converts the row names which contain the IDs into an actual column in the dataset
+
+trans[1:5,2:5]   #Note: I've purposely omitted "printing" the ID colummn, col 1
+
+#Now that all of the data is in the same format (where samples are the rows) we can merge the covariates, phenotype data with the genetic dosage data
+
+all <-merge(covar, trans, by.x="BCAC_ID", by.y="BCAC_ID", sort=TRUE)
+```
+####A quick view of the data
+The covariate/phenotype data:
+
+```{r, warning=FALSE, echo=F}
+all[1:5,c(3:8,15,16)] 
+```
+
+The dosage values per person per variant:
+
+```{r, warning=FALSE, echo=F}
+all[1:5,19:22] 
+```
+### Analysis
+Prior to running the analysis lets first identify the number of cases (53,772) & controls (76,479); this is a large study with 130,251 samples
+```{r, warning=FALSE, echo=F, results='hide', message=FALSE, results=FALSE}
+table(all$status_new)
+```
+In order to identify the association between a given variant / dosage value with case/control status, we will run a logistic regression model (glm, family=logit) and additionally adjust for the country of origin of study which is known to affect differences in associations, and the first four principal components (which are more precise genetic markers used to identify race/ethnicity - rather than using self identified race/ethnicity)
+
+First we fit a null model where dosage is not included and there after each iteration below within the loop will cycle through every variant, with the start point at 19. 
+
+```{r, warning=FALSE, echo=F,}
+reg.null <-glm (status_new ~ as.factor(StudyCountry) + PC1 + PC2 + PC3 + PC4, family=binomial, data=all)
+summary(reg.null)
+```
+As seen in the regression results above, the country of study origin is signfiicantly varied depending on the country in question in realtion to cancer risk and this is due to population stratification issues which is why we are adjusting for study country in our analyses as well as the PC values.
+
+For the association tests, we will take in the dosage value for each person one variant at a time - using this we will calculate the frequency of the variant in our study here (for comparison of its occurrence in the general population), and conduct varioius tests: the likelihood ratio test, the score test and the wald test.  
+
+```{r, warning=FALSE, echo=F, results='hide', message=FALSE, results=FALSE, eval=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+
+start <-19  #This value can be adjusted for any subset of variants you want to analyze
+stop <-dim(all)[2]
+dim(all)
+
+for (i in start:stop){
+  
+  Dosage <-all[i]
+  Dosage <-apply(Dosage, 1, as.numeric)
+  
+# Determine the Frequency of each variant in this dataset
+  Frequency <-mean(Dosage)/2
+  
+# Analyze the data using the Score Test - more appropriate test measure for variants that are rare in our data - this is the proper test statistic to report 
+  Score.Z <-glm.scoretest(reg.null,Dosage,dispersion=NULL)
+  P.Score <-2*(1-pnorm(abs(Score.Z)))
+  
+# Analyze the data using the Likelihood Ratio Test for comparison & general use
+  reg <-glm(status_new ~ as.factor(StudyCountry) + PC1 + PC2 + PC3 + PC4 + Dosage, family=binomial, data=all)
+  
+  chi.stat.LRT <-2*(logLik(reg) - logLik(reg.null))
+  P.LRT <-1-pchisq(chi.stat.LRT, df=1)
+  
+# If Dosage is missing for all samples for a given variant, then we must indicate the missingness in our results with "NA" for the beta estimate, SE and P.Wald as done below, otherwise report the test statistics as they are being calculated
+    if (!"Dosage" %in% rownames(summary(reg)$coefficients)){
+    Estimate <-NA
+    SE <-NA
+    P.Wald <-NA
+  }
+  
+  if ("Dosage" %in% rownames(summary(reg)$coefficients)){
+    Estimate <-coef(summary(reg))["Dosage","Estimate"]  #extract the beta estimate value from the regression output
+    SE <-coef(summary(reg))["Dosage","Std. Error"]  #extract the std error from the regression output
+    P.Wald <-coef(summary(reg))["Dosage","Pr(>|z|)"]  #extract the p-value from the regression output
+  }
+  
+# Report Sample size, the cases and controls for each variant as these values fluctuate across the study per person  
+  Sample <-length(all$status_new)
+  N.cases <-sum(all$status_new)
+  N.controls <-Sample - N.cases
+  
+  MarkerName <-colnames(all[i])
+  
+# Consolidate all results in a single report for output
+  Output <-cbind(MarkerName,N.cases,N.controls,Frequency,Estimate,SE,P.Wald,chi.stat.LRT,P.LRT,Score.Z,P.Score)
+  write.table(Output, "Outputs/BCAC_Overall_Status_Results.txt", append=T, quote=F, sep="\t", row.names=F, col.names=!file.exists("Outputs/BCAC_Overall_Status_Results.txt"))    
+}
+```
+
+###Results
+
+```{r, warning=FALSE, echo=F, results='hide', message=FALSE, results=FALSE}
+#Lets read in the complete results file next, with analyses results for all 3135 variants we analyzed
+results <-read.table("Outputs/BCAC_Overall_Status_Results.txt", header=T, fill=T) 
+
+#A little more post-processing. Before we can plot the results we have to merge in additional annotations for the variants so we can plot the results by chromosome. So read in the info file with the annotation data and merge it into the results file
+info <-read.table("Data/BCAC_582_imputed_variants_info.txt", header=TRUE, fill=T) 
+
+tog <-merge(info, results, by.x="MarkerName", by.y="MarkerName", sort=TRUE)
+
+### Plots
+
+#Before we can create manhattan and q-q plots from the results, lets first examine how many variants are on each chromosome?
+as.data.frame(table(tog$chr))
+
+P <-tog$P.Wald  #using the Wald p-value here as it is most commonly used
+BP <-tog$position
+CHR <-tog$chr
+
+dat <-cbind.data.frame(CHR,BP,P)
+```
+```{r, warning=FALSE, echo=F, message=FALSE}
+#Lets create a Manhattan Plot
+
+tiff(filename="Outputs/MH_plot.tiff", width= 8, height=8, units="in", res=500)
+mh<-manhattan(dat, col =c("blue", "gray60", "orange"), main="Manhattan Plot of GWAS p-values", ylim=c(0, 200), cex=0.6, 
+    cex.axis=0.9, genomewideline=-log10(5e-08), suggestiveline=F, chrlabs=c(1:23), annotateTop=TRUE)
+dev.off()
+```
+
+The Manhattan plot shown above represent the P values of the entire GWAS on a genomic scale. The P values are represented in genomic order by chromosome and position on the chromosome (x-axis). The value on the y-axis represents the -log10 of the P value (equivalent to the number of zeros after the decimal point plus one). Because of local correlation of the genetic variants, arising from infrequent genetic recombination, groups of significant P values tend to rise up high on the Manhattan plot, making the graph look like a Manhattan skyline.  We have lots of highly significant findings - most of which are among well known and previously reported genes & regions, but this is still a great postive test indicating our analyses, and our measurement values are all accurate and indicate sound findings. 
+
+Note: To account for false positive rate, or the Type I error, genetic analyses commonly control this via a Bonferonni correction. The Bonferroni correction simply divides the significance level at each locus by the number of tests. In other words, it adjusts the alpha value from a = 0.05 to a =(0.05/k) where k is the number of statistical tests conducted. Most commonly used approximation: Significant associations have a P value smaller than 5E-8, under the assumption that 1 million independent tests are performed. The significance threshold 5E-8, also termed "genome-wide significance" is reached by dividing the usual alpha of 0.05 by 1 million (the effective number of tests performed). In our case, we have fewer variants than a complete GWAS (which would consists of multi-million variants), but we should still adhere to the 5E-8 as our variants were chosen from a set of high risk variant groups and more likely to be significantly associated with cancer risk.
+
+
+```{r, warning=FALSE, echo=F, message=FALSE}
+tiff(filename="Outputs/QQ_plot.tiff", width= 8, height=8, units="in", res=500)
+qq_p <-qq(P, main="Q-Q plot of GWAS p-values", xlim=c(0, 7), ylim=c(0, 12), pch=18, col="blue4", cex=1.5, las=1)
+dev.off()
+
+```
+
+The Quantile-Quantile plot above is a graphical representation of the deviation of the observed P values from the null hypothesis: the observed P values for each variant are sorted from largest to smallest and plotted against expected values from a theoretical chi-square distribution.  It's a plot of the observed distribution of p-values vs. the expected distribution of p-values. We don't want a uniform distribution of p-values (indicated by a straight diagonal line), that would mean there are no causal variants. In our case, we see a sharp lift off due to the highly significant associations and nothing seems out of place.
+
+
+Calculated genomic inflation factor:
+
+```{r, warning=FALSE, echo=F, message=FALSE}
+l_chisq <-qchisq (1-P, 1)
+
+lambda <-median (l_chisq / qchisq(0.5,1))
+lambda
+```
+
+The genomic inflation factor, lambda, is defined as the ratio of the median of the empirically observed distribution of the test statistic to the expected median, thus quantifying the extent of the bulk inflation and the excess false positive rate. The lambda values and Q-Q plots are used to compare the genome-wide distribution of the test statistic with the expected null distribution. The Q-Q plot is a useful visual tool to mark deviations of the observed distribution from the expected null distribution. Inflated lambda values or residual deviations in the Q-Q plot may point to undetected sample duplications, unknown familial relationships, a poorly calibrated test statistic, systematic technical bias or gross population stratification. A value of 1.83 is not a highly inflated value given our cherry-picked set of variants. So carry on-ward, all is well!
+
+
+To take a closer look at our results, lets prune the complete set of analyes to the top hits that are genomewide, the complete set of these results can be found in the Outputs directory, here are the top most significant associations:
+
+```{r, warning=FALSE, echo=F, results='hide', results=FALSE}
+top_hits <-subset(tog, P.Wald <5E-8)
+write.table(top_hits, "Outputs/BCAC_Overall_Status_Results_top_hits.txt", append=F, quote=F, sep="\t", row.names=F, col.names=T)
+sort_top <-top_hits[order(top_hits$P.Wald) , ]
+``` 
+```{r, warning=FALSE, echo=F}
+sort_top[1:10, c(1,3:6,7,10:15)]
+``` 
+The table above shows the association results for the top 10 variants (based off of the p-values, lower p-value = highly significant), along with the respective chromosomal positions, the alleles (a0,a1), the expected frequency of the variant in the general population (exp_freq), the number of cases & controls, calculated frequency of the variant in the study (Frequency), and the test statistics from our analyses (Beta Estimates, SE & P-value). As previously observed from the Manhattan plot, we see that well known genes & variants such as FGFR2 (the most significantly associated region on chromosome 10) are among the well known variants we were able to replicate in our analyses - meaning, these variants are the genetical causal factors to increase breast cancer risk. Other well known genes included in the table above & extended results file include: BRCA2 (chr 13), FTO (chr 16), MAP3K1 (chr 5), MYC (chr 8), EMBP1 (chr 1) and IGFBP5 (chr 2).  Although we were unable to report novel results that are globally significant, the sample of individuals recruited to the study are a part of high risk population and having identified key genes that impact cancer risk among this sub-set can be used to create some form of a genetic score that can then be implemented in a clincal setting to flag/highlight like individuals who could be of a higher breast cancer risk profile.
+
+###Discussion
+
+Individually, SNPs have quite small effect sizes and may not be informative for evaluating risk of developing breast cancer. While rare mutations in genes such as BRCA1 and BRCA2 confer high risks of developing breast cancer, these account for only a small proportion of breast cancer cases in the general population [7,8]. However, recent studies have suggested that all of the breast cancer susceptibility markers to date explain up to 18% of familial relative risk [2]. Thus, combining these common variants together may provide some insight into individual risks of breast cancer. Studies using polygenic risk scores (PRS) based on larger numbers of SNPs have successfully demonstrated an ability to stratify or individualize breast cancer risk in a number of populations [9,10].
+
+Our findings were able to highlight high risk variants among a large sample set, though no novel reporting was achieved, we can utilize the top variants identified to create a genetic PRS and use it as a marker for risk. To further aid cancer precision medicine which aims to provide the right dose of the right drug for the right patient at the right time, we can utilize studies that profile a series of markers to help formulate a genetic pattern of cancer and the individual. Much work remains ahead with this as a starting point.
+
+###References
+(1) Peto, J, and T M Mack. "High constant incidence in twins and other relatives of women with breast cancer." Nature genetics vol. 26,4 (2000): 411-4. doi:10.1038/82533
+
+(2) Michailidou, Kyriaki et al. "Association analysis identifies 65 new breast cancer risk loci." Nature vol. 551,7678 (2017): 92-94. doi:10.1038/nature24284
+
+(3) Hein, Rebecca et al. "Comparison of 6q25 breast cancer hits from Asian and European Genome Wide Association Studies in the Breast Cancer Association Consortium (BCAC)." PloS one vol. 7,8 (2012): e42380. doi:10.1371/journal.pone.0042380
+
+(4) 1000 Genomes Project Consortium et al. "A global reference for human genetic variation." Nature vol. 526,7571 (2015): 68-74. doi:10.1038/nature15393
+
+(5) Delaneau, Olivier et al. "A linear complexity phasing method for thousands of genomes." Nature methods vol. 9,2 179-81. 4 Dec. 2011, doi:10.1038/nmeth.1785
+
+(6) R Development Core Team (2005) R: A language and environment for statistical computing. Vienna, Austria, R Foundation for Statistical Computing.
+
+(7) Miki, Y et al. "A strong candidate for the breast and ovarian cancer susceptibility gene BRCA1." Science (New York, N.Y.) vol. 266,5182 (1994): 66-71. doi:10.1126/science.7545954
+
+(8) Wooster, R et al. "Identification of the breast cancer susceptibility gene BRCA2." Nature vol. 378,6559 (1995): 789-92. doi:10.1038/378789a0.
+
+(9) Mavaddat, Nasim et al. "Polygenic Risk Scores for Prediction of Breast Cancer and Breast Cancer Subtypes." American journal of human genetics vol. 104,1 (2019): 21-34. doi:10.1016/j.ajhg.2018.11.002
+
+(10) Kapoor, Pooja Middha et al. "Combined associations of a polygenic risk score and classical risk factors with breast cancer risk." Journal of the National Cancer Institute, djaa056. 2 May. 2020, doi:10.1093/jnci/djaa056
